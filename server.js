@@ -1,8 +1,11 @@
 // Import modules
 require('dotenv').config();
+console.log(process.env.SPOTIFY_CLIENT_ID, process.env.SPOTIFY_CLIENT_SECRET);
+
 const express = require('express');
 const bodyParser = require('body-parser');
 const SpotifyWebApi = require('spotify-web-api-node');
+const fs = require('fs');
 
 // Initialize app
 const app = express();
@@ -31,22 +34,40 @@ app.get('/',(req, res)=>{
     res.sendFile(__dirname+'/views/index.html');
 });
 
-app.post('/find',(req, res)=>{
+app.post('/find', async (req, res)=>{
     const name = req.body.name;
+    let html = `
+    <h1>Result of search ${name}<h1>
+    <ol>
+    `;
 
-    res.send(`
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, inintial-scale=1.0">
-            <title>Result</title>
-            <link rel="stylesheet" href="/style.css">
-        </head>
-        
-        </html>
-        
-        `);
+    const data = await spotifyApi.searchTracks(name);
+    const tracks = data.body.tracks.items;
+
+    tracks.forEach((track) => {
+    // const artistName = track.artists.map((artist) => artist.name).join(', ');
+    const artistsURL = track.artists.map((artist) => `<a href="${artist.external_urls.spotify}" target="_blank">${artist.name}</a>`).join(', ');
+    const trackURL = track.external_urls.spotify;
+    const trackName = track.name;
+    const trackPop = track.popularity;
+    const imageURL = track.album.images[1].url;
+    
+    console.log("Name: "+trackName+"  Popularity: "+trackPop)
+    
+    html += `
+    <li>
+        <a href="${trackURL}" target="_blank">${trackName}</a>
+        ${artistsURL}
+        <img src="${imageURL}" alt="${trackName}">
+        <p></p>
+    </li>
+    `
+    });
+
+    html += '</ol><a href="/">Go back</a>';
+
+
+    res.send(html);
 });
 
 // Display the following details for each song:
